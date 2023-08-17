@@ -7,23 +7,14 @@ import (
 	"os"
 )
 
-type config struct {
-	address   string
-	staticDir string
-}
-
 type application struct {
 	infoLogger  *log.Logger
 	errorLogger *log.Logger
+	address     string
+	staticDir   string
 }
 
 func main() {
-	// server configurations
-	var cfg config
-	flag.StringVar(&cfg.address, "addr", "localhost:4000", "HTTP network address")
-	flag.StringVar(&cfg.staticDir, "static", "./ui/static", "Static Directory for Assets")
-	flag.Parse()
-
 	// logger configuration
 	infoLogger := log.New(os.Stdout, "INFO:\t", log.Ldate|log.Ltime)
 	errorLogger := log.New(os.Stderr, "ERROR:\t", log.Ldate|log.Ltime|log.Lshortfile)
@@ -34,24 +25,20 @@ func main() {
 		errorLogger: errorLogger,
 	}
 
-	// multiplexer and fileserver configuration
-	mux := http.NewServeMux()
+	// server configurations
+	flag.StringVar(&app.address, "addr", "localhost:4000", "HTTP network address")
+	flag.StringVar(&app.staticDir, "static", "./ui/static", "Static Directory for Assets")
+	flag.Parse()
 
-	fileServer := http.FileServer(http.Dir(cfg.staticDir))
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-
-	// routes
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet/view", app.snippetView)
-	mux.HandleFunc("/snippet/create", app.snippetCreate)
+	mux := app.routes()
 
 	srv := &http.Server{
-		Addr:     cfg.address,
+		Addr:     app.address,
 		ErrorLog: errorLogger,
 		Handler:  mux,
 	}
 
-	infoLogger.Printf("Serving@ http://%s", cfg.address)
+	infoLogger.Printf("Serving@ http://%s", app.address)
 	err := srv.ListenAndServe()
 	errorLogger.Fatal(err)
 }
