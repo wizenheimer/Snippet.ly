@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -13,12 +14,13 @@ import (
 )
 
 type application struct {
-	infoLogger  *log.Logger
-	errorLogger *log.Logger
-	snippet     *models.SnippetModel
-	address     string
-	staticDir   string
-	dsn         string
+	infoLogger    *log.Logger
+	errorLogger   *log.Logger
+	snippet       *models.SnippetModel
+	address       string
+	staticDir     string
+	dsn           string
+	templateCache map[string]*template.Template
 }
 
 func main() {
@@ -47,12 +49,18 @@ func main() {
 
 	defer db.Close()
 
+	templateCache, err := newTemplateCache()
+	if err != nil {
+		errorLogger.Fatal(err)
+	}
+
 	// application struct to share loggers with handlers
 	app := &application{
-		infoLogger:  infoLogger,
-		errorLogger: errorLogger,
-		snippet:     &models.SnippetModel{DB: db},
-		dsn:         dsn,
+		infoLogger:    infoLogger,
+		errorLogger:   errorLogger,
+		snippet:       &models.SnippetModel{DB: db},
+		dsn:           dsn,
+		templateCache: templateCache,
 	}
 
 	// server configurations
