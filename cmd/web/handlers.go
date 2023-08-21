@@ -3,6 +3,8 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"net/http"
 	"strconv"
@@ -64,6 +66,26 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 	expires, err := strconv.Atoi(r.PostForm.Get("expires"))
 	if err != nil {
 		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	fieldErrors := make(map[string]string)
+	if strings.TrimSpace(title) == "" {
+		fieldErrors["title"] = "Title field can't be empty."
+	} else if utf8.RuneCountInString(title) > 100 {
+		fieldErrors["title"] = "Title field can't have character count exceeding 100."
+	}
+
+	if strings.TrimSpace(content) == "" {
+		fieldErrors["content"] = "Content field can't be empty."
+	}
+
+	if expires != 1 && expires != 7 && expires != 365 {
+		fieldErrors["expires"] = "Expiration field should be limited to 1, 7, or 365 days."
+	}
+
+	if len(fieldErrors) > 0 {
+		fmt.Fprint(w, fieldErrors)
 		return
 	}
 
