@@ -13,6 +13,13 @@ import (
 	"github.com/wizenheimer/snippet.ly/internal/models"
 )
 
+type snippetCreateForm struct {
+	Title       string
+	Content     string
+	Expires     int
+	FieldErrors map[string]string
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippet.Latest()
 	if err != nil {
@@ -51,6 +58,9 @@ func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	data := app.newTemplateData(r)
+	data.Form = snippetCreateForm{
+		Expires: 365,
+	}
 	app.render(w, http.StatusOK, "create.html", data)
 }
 
@@ -69,23 +79,31 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fieldErrors := make(map[string]string)
+	form := snippetCreateForm{
+		Title:       title,
+		Content:     content,
+		Expires:     expires,
+		FieldErrors: map[string]string{},
+	}
+
 	if strings.TrimSpace(title) == "" {
-		fieldErrors["title"] = "Title field can't be empty."
+		form.FieldErrors["title"] = "Title field can't be empty."
 	} else if utf8.RuneCountInString(title) > 100 {
-		fieldErrors["title"] = "Title field can't have character count exceeding 100."
+		form.FieldErrors["title"] = "Title field can't have character count exceeding 100."
 	}
 
 	if strings.TrimSpace(content) == "" {
-		fieldErrors["content"] = "Content field can't be empty."
+		form.FieldErrors["content"] = "Content field can't be empty."
 	}
 
 	if expires != 1 && expires != 7 && expires != 365 {
-		fieldErrors["expires"] = "Expiration field should be limited to 1, 7, or 365 days."
+		form.FieldErrors["expires"] = "Expiration field should be limited to 1, 7, or 365 days."
 	}
 
-	if len(fieldErrors) > 0 {
-		fmt.Fprint(w, fieldErrors)
+	if len(form.FieldErrors) > 0 {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "create.html", data)
 		return
 	}
 
