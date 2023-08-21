@@ -1,6 +1,10 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+
+	"github.com/justinas/alice"
+)
 
 func (app *application) routes() http.Handler {
 	// multiplexer and fileserver configuration
@@ -12,5 +16,8 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/", app.home)
 	mux.HandleFunc("/snippet/view", app.snippetView)
 	mux.HandleFunc("/snippet/create", app.snippetCreate)
-	return app.logRequest(secureHeaders(mux))
+
+	// middleware chaining
+	mdlw := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
+	return mdlw.Then(mux)
 }
