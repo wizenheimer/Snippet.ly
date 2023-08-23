@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/go-playground/form/v4"
 	"github.com/wizenheimer/snippet.ly/internal/models"
 
 	"github.com/go-sql-driver/mysql"
@@ -21,6 +22,7 @@ type application struct {
 	staticDir     string
 	dsn           string
 	templateCache map[string]*template.Template
+	formDecoder   *form.Decoder
 }
 
 func main() {
@@ -54,6 +56,8 @@ func main() {
 		errorLogger.Fatal(err)
 	}
 
+	formDecoder := form.NewDecoder()
+
 	// application struct to share loggers with handlers
 	app := &application{
 		infoLogger:    infoLogger,
@@ -61,6 +65,7 @@ func main() {
 		snippet:       &models.SnippetModel{DB: db},
 		dsn:           dsn,
 		templateCache: templateCache,
+		formDecoder:   formDecoder,
 	}
 
 	// server configurations
