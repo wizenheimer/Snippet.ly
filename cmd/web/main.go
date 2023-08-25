@@ -7,7 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
+	"github.com/alexedwards/scs/mysqlstore"
+	"github.com/alexedwards/scs/v2"
 	"github.com/go-playground/form/v4"
 	"github.com/wizenheimer/snippet.ly/internal/models"
 
@@ -15,14 +18,15 @@ import (
 )
 
 type application struct {
-	infoLogger    *log.Logger
-	errorLogger   *log.Logger
-	snippet       *models.SnippetModel
-	address       string
-	staticDir     string
-	dsn           string
-	templateCache map[string]*template.Template
-	formDecoder   *form.Decoder
+	infoLogger     *log.Logger
+	errorLogger    *log.Logger
+	snippet        *models.SnippetModel
+	address        string
+	staticDir      string
+	dsn            string
+	templateCache  map[string]*template.Template
+	formDecoder    *form.Decoder
+	sessionManager *scs.SessionManager
 }
 
 func main() {
@@ -56,16 +60,21 @@ func main() {
 		errorLogger.Fatal(err)
 	}
 
+	sessionManager := scs.New()
+	sessionManager.Store = mysqlstore.New(db)
+	sessionManager.Lifetime = 12 * time.Hour
+
 	formDecoder := form.NewDecoder()
 
 	// application struct to share loggers with handlers
 	app := &application{
-		infoLogger:    infoLogger,
-		errorLogger:   errorLogger,
-		snippet:       &models.SnippetModel{DB: db},
-		dsn:           dsn,
-		templateCache: templateCache,
-		formDecoder:   formDecoder,
+		infoLogger:     infoLogger,
+		errorLogger:    errorLogger,
+		snippet:        &models.SnippetModel{DB: db},
+		dsn:            dsn,
+		templateCache:  templateCache,
+		formDecoder:    formDecoder,
+		sessionManager: sessionManager,
 	}
 
 	// server configurations
