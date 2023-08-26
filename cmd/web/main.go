@@ -83,9 +83,12 @@ func main() {
 	flag.Parse()
 
 	srv := &http.Server{
-		Addr:     app.address,
-		ErrorLog: errorLogger,
-		Handler:  app.routes(),
+		Addr:         app.address,
+		ErrorLog:     errorLogger,
+		Handler:      app.routes(),
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  time.Second * 5,
+		WriteTimeout: time.Second * 10,
 	}
 
 	infoLogger.Printf("Serving@ http://%s", app.address)
