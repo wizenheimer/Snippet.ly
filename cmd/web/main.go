@@ -21,6 +21,7 @@ type application struct {
 	infoLogger     *log.Logger
 	errorLogger    *log.Logger
 	snippet        *models.SnippetModel
+	users          *models.UserModel
 	address        string
 	staticDir      string
 	dsn            string
@@ -71,6 +72,7 @@ func main() {
 		infoLogger:     infoLogger,
 		errorLogger:    errorLogger,
 		snippet:        &models.SnippetModel{DB: db},
+		users:          &models.UserModel{Db: db},
 		dsn:            dsn,
 		templateCache:  templateCache,
 		formDecoder:    formDecoder,
