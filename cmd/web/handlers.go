@@ -19,6 +19,13 @@ type snippetCreateForm struct {
 	validator.Validator `form:"-"`
 }
 
+type userSignupForm struct {
+	Name                string `form:"name"`
+	Email               string `form:"email"`
+	Password            string `form:"password"`
+	validator.Validator `form:"-"`
+}
+
 func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	snippets, err := app.snippet.Latest()
 	if err != nil {
@@ -95,11 +102,35 @@ func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request
 }
 
 func (app *application) userSignup(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("user signup")
+	data := app.newTemplateData(r)
+	data.Form = userSignupForm{}
+	app.render(w, http.StatusOK, "signup.html", data)
 }
 
 func (app *application) userSignupPost(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("user signup")
+	var form userSignupForm
+	// decode the form
+	err := app.decodePostForm(r, &form)
+	if err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	// validate the form
+	form.CheckField(validator.NotBlank(form.Name), "name", "form: name field can't be blank")
+	form.CheckField(validator.NotBlank(form.Email), "email", "form: email field can't be blank")
+	form.CheckField(validator.Matches(form.Email, validator.EmailRegex), "email", "form: email doesn't seem legit")
+	form.CheckField(validator.NotBlank(form.Password), "password", "form: password field can't be blank")
+	form.CheckField(validator.MinChars(form.Password, 8), "password", "form: password field must be at least 8 characters long")
+
+	if !form.Valid() {
+		data := app.newTemplateData(r)
+		data.Form = form
+		app.render(w, http.StatusUnprocessableEntity, "signup.html", data)
+		return
+	}
+
+	//	create a user entry
 }
 
 func (app *application) userLogin(w http.ResponseWriter, r *http.Request) {
